@@ -1,2 +1,3 @@
-# bl-cdpapp-dev
-Test app for GT functions
+# AGLS Gen2 management
+
+Function app for managing ADLS Gen2.
