@@ -1,6 +1,15 @@
+from azure.identity import DefaultAzureCredential
+#from msrestazure.azure_active_directory import MSIAuthentication
+import azure.functions as func
 import logging
 
-import azure.functions as func
+
+def get_credentials():
+    """
+    Gets Azure AD auth credentials.
+    """
+    return DefaultAzureCredential()
+#    return MSIAuthentication()
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -8,7 +17,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     name = req.params.get('name')
 
     logging.info(
-        'Request received for applying retention policy to folder {name}')
+        f'Request received for applying retention policy to folder {name}')
+
+    credentials = get_credentials()
+
+    logging.info(f"Credentials {credentials}")
 
     if not name:
         try:
