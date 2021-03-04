@@ -26,11 +26,14 @@ def list_directory_contents(service_client, container, path):
         file_system_client = service_client.get_file_system_client(
             file_system=container)
         paths = file_system_client.get_paths(path=path)
+        pathnames = []
         for path in paths:
+            pathname = path.name
             logging.info(path.name + '\n')
 
     except Exception as e:
         logging.info(e)
+    return pathname
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -63,14 +66,15 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     service_client = get_adls_gen2_service_client(
         credential, storage_account_name)
 
-    list_directory_contents(service_client, "cdp", "Raw")
+    pathname = list_directory_contents(service_client, "cdp", "Raw")
 
     logging.info(
         f'Applying retention of {retention_days} days to folder {folder_path}')
 
+    # logging.info("paths", pathname)
     return func.HttpResponse(
         json.dumps({
-            "name": "bablu"
+            "lastpath": pathname
         }),
         mimetype="application/json",
         status_code=200)
