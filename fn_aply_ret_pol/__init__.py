@@ -38,15 +38,6 @@ def apply_retention_policy(credential, storage_account_name,
         logging.exception(e)
         return False
 
-
-def convert_datetime_to_rfc1123(date):
-    weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][date.weekday()]
-    month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
-             "Oct", "Nov", "Dec"][date.month - 1]
-    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (weekday, date.day, month,
-                                                    date.year, date.hour, date.minute, date.second)
-
-
 def set_expiry(credential, storage_account_name, container_name, file_path, retention_days):
     try:
         url = f"https://{storage_account_name}.blob.core.windows.net/{container_name}/{file_path}?comp=expiry"
@@ -112,16 +103,3 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     service_client = get_adls_gen2_service_client(
         credential, storage_account_name)
-
-    logging.info(credential.get_token(".default"))
-
-    logging.info(
-        f'Applying retention of {retention_days} days to files in folder {folder_path}')
-
-    status = apply_retention_policy(credential, storage_account_name, service_client, container_name,
-                                    folder_path, retention_days)
-    if status is True:
-        return func.HttpResponse(status_code=200)
-    else:
-        return func.HttpResponse("Retention policy application failed", status_code=500)
-    # return func.HttpResponse("Retention policy applied successfully", status_code=200)
