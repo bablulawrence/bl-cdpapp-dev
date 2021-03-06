@@ -1,6 +1,6 @@
 import azure.functions as func
 import logging
-import json
+from datetime import timedelta, date
 from azure.identity import DefaultAzureCredential
 from azure.storage.filedatalake import DataLakeServiceClient
 #from msrestazure.azure_active_directory import MSIAuthentication
@@ -20,20 +20,35 @@ def get_adls_gen2_service_client(credential, storage_account_name):
         credential=credential)
 
 
-def list_directory_contents(service_client, container, path):
+def apply_retention_policy(service_client, container_name, folder_path, retention_days):
     try:
-
         file_system_client = service_client.get_file_system_client(
-            file_system=container)
-        paths = file_system_client.get_paths(path=path)
-        pathnames = []
-        for path in paths:
-            pathname = path.name
-            logging.info(path.name + '\n')
-
+            file_system=container_name)
+        paths = file_system_client.get_paths(folder_path)
+        status = True
+        for p in paths:
+            if not p.is_directory:
+                status = status and set_expiry(
+                    file_system_client, p, retention_days)
+        return status
     except Exception as e:
         logging.info(e)
-    return pathname
+        return False
+
+
+def set_expiry(file_system_client, file_path, retention_days):
+    try:
+        file_client = file_system_client.get_file_client(file_path.name)
+        #logging.info(f"Applying retention policy on file : {file_path.name}")
+        # file_client.set_file_expiry(expiry_options="Never")
+        # file_client.set_file_expiry('RelativeToCreation', 50000)
+        file_client.set_file_expiry('Absolute',
+                                    expires_on=date.today() + timedelta(days=retention_days))
+        logging.info(file_client.get_file_properties())
+        return True
+    except Exception as e:
+        logging.info(e)
+        return False
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -41,6 +56,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     folder_path = req.params.get('folderPath')
     retention_days = req.params.get('retainForDays')
     storage_account_name = "starteradls3"
+    container_name = "cdp"
 
     if not (folder_path or retention_days):
         try:
@@ -66,16 +82,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     service_client = get_adls_gen2_service_client(
         credential, storage_account_name)
 
-    pathname = list_directory_contents(service_client, "cdp", "Raw")
-
     logging.info(
-        f'Applying retention of {retention_days} days to folder {folder_path}')
+        f'Applying retention of {retention_days} days to files in folder {folder_path}')
 
-    # logging.info("paths", pathname)
-    return func.HttpResponse(
-        json.dumps({
-            "lastpath": pathname
-        }),
-        mimetype="application/json",
-        status_code=200)
+    status = apply_retention_policy(service_client, container_name,
+                                    folder_path, retention_days)
+    if status is True:
+        return func.HttpResponse(status_code=200)
+    else:
+        return func.HttpResponse("Retention policy application failed", status_code=500)
     # return func.HttpResponse("Retention policy applied successfully", status_code=200)
