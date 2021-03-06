@@ -1,5 +1,6 @@
 import azure.functions as func
 import logging
+import os
 from datetime import timedelta, date
 from azure.identity import DefaultAzureCredential
 from azure.storage.filedatalake import DataLakeServiceClient
@@ -53,10 +54,10 @@ def set_expiry(file_system_client, file_path, retention_days):
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
 
+    storage_account_name = os.environ["storageAccountName"]
+    container_name = os.environ["containerName"]
     folder_path = req.params.get('folderPath')
     retention_days = req.params.get('retainForDays')
-    storage_account_name = "starteradls3"
-    container_name = "cdp"
 
     if not (folder_path or retention_days):
         try:

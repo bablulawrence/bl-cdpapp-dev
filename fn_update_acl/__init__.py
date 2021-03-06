@@ -1,5 +1,6 @@
 import azure.functions as func
 import logging
+import os
 from datetime import timedelta, date
 from azure.identity import DefaultAzureCredential
 from azure.storage.filedatalake import DataLakeServiceClient
@@ -41,10 +42,13 @@ def update_acl(service_client, container_name, folder_path, aad_group_object_id)
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
 
+    storage_account_name = os.environ["storageAccountName"]
+    container_name = os.environ["containerName"]
+
     folder_path = req.params.get('folderPath')
     aad_object_id = req.params.get('aadObjectId')
-    storage_account_name = "starteradls3"
-    container_name = "cdp"
+    #storage_account_name = "starteradls3"
+    #container_name = "cdp"
 
     if not (folder_path or aad_object_id):
         try:
