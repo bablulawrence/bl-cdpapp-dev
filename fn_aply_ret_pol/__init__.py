@@ -6,6 +6,8 @@ from datetime import timedelta, date, datetime
 from azure.identity import DefaultAzureCredential
 from azure.storage.filedatalake import DataLakeServiceClient
 
+TAG_ENG_ST_DT = "engagement_start_date"
+
 
 def get_credential():
     """
@@ -41,15 +43,16 @@ def delete_directory(file_system_client, file_path, retention_days):
         directory_client = file_system_client.get_directory_client(
             file_path.name)
         props = directory_client.get_directory_properties()
+        logging.info(props)
         try:
-            es_date = props.metadata['engagementstartdate']
+            es_date = props.metadata[TAG_ENG_ST_DT]
             try:
                 if (datetime.now() - datetime.strptime(es_date, '%Y-%m-%d')) >= timedelta(days=retention_days):
                     directory_client.delete_directory()
             except Exception as e:
                 logging.exception(e)
                 return False
-        except AttributeError:
+        except KeyError:
             pass
         return True
     except Exception as e:
